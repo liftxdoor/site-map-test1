@@ -1,0 +1,24 @@
+LIFTX SEO + INDEXING FIX — CLOUDFLARE PAGES DEPLOYMENT
+
+WHAT THIS PACKAGE FIXES
+- Canonical URLs, Open Graph URLs, structured-data URLs, internal links, and sitemap URLs now use the same extensionless format.
+- sitemap.xml contains 13 canonical indexable URLs.
+- robots.txt allows crawling and points to the sitemap.
+- 404.html is now noindex,follow and no longer declares a canonical URL.
+- _redirects permanently redirects old Wix URLs and .html URLs to the current canonical pages.
+- Existing page design, images, copy, CSS, and JavaScript were not redesigned.
+
+FAST DEPLOYMENT METHOD
+1. Use the GitHub repository currently connected to liftxdoor.com.
+2. Extract this ZIP in the Files app.
+3. Upload every item INSIDE the extracted folder to the repository root. Do not upload the ZIP itself or the enclosing folder.
+4. Allow GitHub to replace files with matching names and add the new _redirects file.
+5. Commit directly to main once and wait for Cloudflare Pages to finish deploying.
+
+AFTER CLOUDFLARE DEPLOYS
+1. Confirm https://www.liftxdoor.com/sitemap.xml opens.
+2. In Google Search Console > Sitemaps, submit sitemap.xml.
+3. Use URL Inspection > Test Live URL > Request Indexing for the homepage and priority service pages.
+
+KNOWN ITEM STILL REQUIRING YOUR REAL DATA
+- Web3Forms access key in contact.html before the contact form can submit.

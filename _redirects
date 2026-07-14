@@ -1,0 +1,24 @@
+# Legacy Wix URLs -> closest current pages
+/services /garage-door-repair-boise 301
+/repair /garage-door-repair-boise 301
+/about-us / 301
+/industrial /commercial 301
+/single-project /projects 301
+/portfolio /projects 301
+/custom-gate /contact 301
+/book-online /contact 301
+
+# HTML filenames -> canonical extensionless URLs
+/index.html / 301
+/residential.html /residential 301
+/commercial.html /commercial 301
+/garage-door-repair-boise.html /garage-door-repair-boise 301
+/garage-door-installation-boise.html /garage-door-installation-boise 301
+/builders-contractors.html /builders-contractors 301
+/projects.html /projects 301
+/garage-door-brands.html /garage-door-brands 301
+/amarr-garage-doors-boise.html /amarr-garage-doors-boise 301
+/clopay-garage-doors-boise.html /clopay-garage-doors-boise 301
+/wayne-dalton-garage-doors-boise.html /wayne-dalton-garage-doors-boise 301
+/warranty.html /warranty 301
+/contact.html /contact 301
