@@ -1,2 +1,3 @@
 Build requested for LIFTX on 2026-08-03.
 Scope: Garaga public 72 dpi web imagery, official logo downloads, and brand-guide resources.
+Crawler version: 2
