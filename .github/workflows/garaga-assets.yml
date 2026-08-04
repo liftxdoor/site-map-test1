@@ -27,7 +27,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check requests beautifulsoup4
 
       - name: Crawl and package Garaga web assets
-        run: python .github/scripts/download_garaga_assets_v2.py
+        run: python .github/scripts/download_garaga_assets_v3.py
 
       - name: Upload Garaga archive
         uses: actions/upload-artifact@v4
