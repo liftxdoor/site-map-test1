@@ -13,7 +13,7 @@ permissions:
 jobs:
   crawl-and-package:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check requests beautifulsoup4
 
       - name: Crawl and package Garaga web assets
-        run: python .github/scripts/download_garaga_assets.py
+        run: python .github/scripts/download_garaga_assets_v2.py
 
       - name: Upload Garaga archive
         uses: actions/upload-artifact@v4
