@@ -1,0 +1,55 @@
+name: Install Residential Photo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/uploads/residential.jpg.b64
+
+permissions:
+  contents: write
+
+jobs:
+  install-photo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Decode optimized JPEG
+        run: base64 --decode .github/uploads/residential.jpg.b64 > residential.jpg
+
+      - name: Update image descriptions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "residential.html": (
+                  'alt="Residential Garage Door Service & Installation"',
+                  'alt="Modern black residential garage door with horizontal glass panels installed by LIFTX"',
+              ),
+              "projects.html": (
+                  'alt="Residential garage door project"',
+                  'alt="Modern black residential garage door installation with horizontal glass panels"',
+              ),
+          }
+
+          for filename, (old, new) in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Expected text not found in {filename}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+      - name: Commit website photo
+        run: |
+          git config user.name "LIFTX Website Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add residential.jpg residential.html projects.html
+          git commit -m "Add modern residential garage door photo [skip ci]"
+          git push origin main
