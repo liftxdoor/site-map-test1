@@ -25,170 +25,70 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Install HTML parser
-        run: python -m pip install --disable-pip-version-check beautifulsoup4
-
-      - name: Decode image and add it to the residential gallery
+      - name: Decode image and update website pages
         shell: bash
         run: |
           python - <<'PY'
           from __future__ import annotations
 
           import base64
-          import copy
-          import re
-          import shutil
           from pathlib import Path
-
-          from bs4 import BeautifulSoup, Tag
 
           repo = Path.cwd()
           upload_dir = repo / "tmp" / "image-upload"
-          encoded_files = sorted(upload_dir.glob("*.jpg.b64"))
-          if not encoded_files:
-              raise SystemExit("No JPG upload payload found")
+          stem = "liftx-modern-black-garage-door-boise.jpg.b64"
+          parts = sorted(upload_dir.glob(stem + ".part*"))
 
-          encoded = encoded_files[0]
-          decoded_tmp = upload_dir / encoded.name.removesuffix(".b64")
-          decoded_tmp.write_bytes(base64.b64decode(encoded.read_text(encoding="utf-8")))
-
-          if (repo / "assets" / "images").is_dir():
-              image_dir = repo / "assets" / "images" / "projects"
-              public_src = "/assets/images/projects/liftx-modern-black-garage-door-boise.jpg"
-          elif (repo / "images").is_dir():
-              image_dir = repo / "images" / "projects"
-              public_src = "/images/projects/liftx-modern-black-garage-door-boise.jpg"
-          elif (repo / "public" / "images").is_dir():
-              image_dir = repo / "public" / "images" / "projects"
-              public_src = "/images/projects/liftx-modern-black-garage-door-boise.jpg"
+          if parts:
+              payload = "".join(p.read_text(encoding="utf-8") for p in parts)
           else:
-              image_dir = repo / "assets" / "images" / "projects"
-              public_src = "/assets/images/projects/liftx-modern-black-garage-door-boise.jpg"
+              single = upload_dir / stem
+              if not single.exists():
+                  raise SystemExit("No image payload found")
+              payload = single.read_text(encoding="utf-8")
 
-          image_dir.mkdir(parents=True, exist_ok=True)
-          final_image = image_dir / "liftx-modern-black-garage-door-boise.jpg"
-          shutil.move(str(decoded_tmp), final_image)
+          image_name = "liftx-modern-black-garage-door-boise.jpg"
+          image_path = repo / image_name
+          image_path.write_bytes(base64.b64decode(payload, validate=True))
 
-          html_files = [
-              p for p in repo.rglob("*.html")
-              if not any(part in {".git", ".github", "node_modules", "dist", "build"} for part in p.parts)
-          ]
-          if not html_files:
-              raise SystemExit("No HTML pages found")
+          replacements = {
+              "residential.html": (
+                  '<img src="residential.jpg" alt="Residential Garage Door Service & Installation" loading="lazy">',
+                  '<img src="liftx-modern-black-garage-door-boise.jpg" alt="Modern black residential garage door with offset frosted-glass windows installed by LIFTX" width="800" height="1067" loading="lazy" decoding="async">',
+              ),
+              "garage-door-installation-boise.html": (
+                  '<img src="fullview-project.jpg" alt="Garage Door Installation & Replacement" loading="lazy">',
+                  '<img src="liftx-modern-black-garage-door-boise.jpg" alt="Modern black garage door installation with offset frosted-glass windows" width="800" height="1067" loading="lazy" decoding="async">',
+              ),
+              "projects.html": (
+                  '<article class="project-card"><img src="residential.jpg" alt="Residential garage door project"><div><small>Residential</small><h3>Residential Door Installation</h3></div></article>',
+                  '<article class="project-card"><img src="liftx-modern-black-garage-door-boise.jpg" alt="Modern black residential garage door with offset frosted-glass windows" width="800" height="1067" loading="lazy" decoding="async"><div><small>Residential</small><h3>Modern Black Door Installation</h3></div></article>',
+              ),
+          }
 
-          def page_score(path: Path) -> int:
-              text = path.read_text(encoding="utf-8", errors="ignore").lower()
-              path_l = str(path.relative_to(repo)).lower()
-              score = 0
-              if "residential" in path_l:
-                  score += 120
-              if "residential garage" in text:
-                  score += 80
-              if "garage door installation" in text or "garage doors" in text:
-                  score += 20
-              if "gallery" in text or "our work" in text or "recent" in text:
-                  score += 20
-              return score
-
-          target = max(html_files, key=page_score)
-          html = target.read_text(encoding="utf-8")
-          if "data-liftx-project=\"modern-black-glass-door\"" in html or public_src in html:
-              encoded.unlink(missing_ok=True)
-              raise SystemExit(0)
-
-          soup = BeautifulSoup(html, "html.parser")
-
-          keyword_re = re.compile(r"gallery|project|portfolio|work|install|photo|image", re.I)
-          candidates: list[tuple[int, Tag, list[Tag]]] = []
-          for element in soup.find_all(True):
-              if not isinstance(element, Tag):
+          for filename, (old, new) in replacements.items():
+              path = repo / filename
+              text = path.read_text(encoding="utf-8")
+              if new in text:
                   continue
-              classes = " ".join(element.get("class", []))
-              ident = element.get("id", "")
-              label = f"{classes} {ident}"
-              if not keyword_re.search(label):
-                  continue
-              direct_cards = [
-                  child for child in element.find_all(recursive=False)
-                  if isinstance(child, Tag) and child.find("img") is not None
-              ]
-              image_count = len(element.find_all("img"))
-              if not direct_cards and image_count == 0:
-                  continue
-              score = 0
-              score += min(image_count, 12) * 4
-              score += min(len(direct_cards), 8) * 12
-              if re.search(r"gallery|project|portfolio|work", label, re.I):
-                  score += 35
-              if re.search(r"grid", label, re.I):
-                  score += 25
-              if len(direct_cards) >= 2:
-                  score += 50
-              candidates.append((score, element, direct_cards))
+              if old not in text:
+                  raise SystemExit(f"Expected markup not found in {filename}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-          if not candidates:
-              # Fallback: use the parent of the largest cluster of sibling image cards.
-              for element in soup.find_all(True):
-                  if not isinstance(element, Tag):
-                      continue
-                  direct_cards = [
-                      child for child in element.find_all(recursive=False)
-                      if isinstance(child, Tag) and child.find("img") is not None
-                  ]
-                  if len(direct_cards) >= 2:
-                      candidates.append((len(direct_cards) * 10, element, direct_cards))
+          for p in parts:
+              p.unlink()
+          (upload_dir / stem).unlink(missing_ok=True)
+          if upload_dir.exists() and not any(upload_dir.iterdir()):
+              upload_dir.rmdir()
+              parent = upload_dir.parent
+              if parent.exists() and not any(parent.iterdir()):
+                  parent.rmdir()
 
-          if not candidates:
-              raise SystemExit("Could not locate an existing image gallery; no page changes were committed")
-
-          _, container, direct_cards = max(candidates, key=lambda item: item[0])
-          if not direct_cards:
-              direct_cards = [container.find("img").parent]
-
-          card = copy.deepcopy(direct_cards[-1])
-          card["data-liftx-project"] = "modern-black-glass-door"
-          card.attrs.pop("id", None)
-
-          image = card.find("img")
-          if image is None:
-              raise SystemExit("Selected gallery card does not contain an image")
-
-          image["src"] = public_src
-          image["alt"] = "Modern black garage door with offset frosted-glass windows installed by LIFTX in the Boise area"
-          image["width"] = "1200"
-          image["height"] = "1600"
-          image["loading"] = "lazy"
-          image["decoding"] = "async"
-          for attr in ("srcset", "sizes", "data-src", "data-srcset"):
-              image.attrs.pop(attr, None)
-
-          link = image.find_parent("a")
-          if link is not None and link.get("href"):
-              link["href"] = public_src
-
-          figcaption = card.find("figcaption")
-          if figcaption is not None:
-              figcaption.clear()
-              figcaption.append("Modern black garage door with offset glass")
-          else:
-              heading = card.find(["h2", "h3", "h4", "h5"])
-              if heading is not None:
-                  heading.clear()
-                  heading.append("Modern Black Garage Door")
-              paragraph = card.find("p")
-              if paragraph is not None:
-                  paragraph.clear()
-                  paragraph.append("Offset frosted-glass windows create a clean, contemporary finish.")
-
-          container.append(card)
-          target.write_text(str(soup), encoding="utf-8")
-          encoded.unlink(missing_ok=True)
-
-          print(f"Added {final_image.relative_to(repo)}")
-          print(f"Updated {target.relative_to(repo)}")
+          print(f"Added {image_name}")
+          print("Updated residential.html, projects.html, and garage-door-installation-boise.html")
           PY
 
-      - name: Commit generated JPG and page update
+      - name: Commit generated JPG and page updates
         shell: bash
         run: |
           git config user.name "LIFTX Website Bot"
@@ -198,5 +98,5 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "Add modern black garage door project photo"
+          git commit -m "Add modern black garage door photo across site"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
